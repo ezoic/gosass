@@ -1,8 +1,8 @@
 package gosass
 
 /*
-#cgo LDFLAGS: -L../../../../../clibs/lib -lsass -lstdc++
-#cgo CFLAGS: -I../../../../../clibs/include
+#cgo LDFLAGS: -L. -lsass -lstdc++
+#cgo CFLAGS: -Ilibsass
 
 #include <stdlib.h>
 #include <sass_interface.h>
@@ -17,7 +17,6 @@ type Options struct {
 	OutputStyle    int
 	SourceComments bool
 	IncludePaths   []string
-	ImagePath      string
 	// eventually gonna' have things like callbacks and whatnot
 }
 
@@ -45,6 +44,11 @@ const (
 	COMPRESSED_STYLE
 )
 
+func GetLibsassVersion() string {
+	cStr := C.libsass_version()
+	return C.GoString(cStr)
+}
+
 func Compile(goCtx *Context) {
 	// set up the underlying C context struct
 	cCtx := C.sass_new_context()
@@ -52,14 +56,12 @@ func Compile(goCtx *Context) {
 	defer C.free(unsafe.Pointer(cCtx.source_string))
 	cCtx.options.output_style = C.int(goCtx.Options.OutputStyle)
 	if goCtx.Options.SourceComments {
-		cCtx.options.source_comments = C.int(1)
+		cCtx.options.source_comments = true
 	} else {
-		cCtx.options.source_comments = C.int(0)
+		cCtx.options.source_comments = false
 	}
 	cCtx.options.include_paths = C.CString(strings.Join(goCtx.Options.IncludePaths, ":"))
 	defer C.free(unsafe.Pointer(cCtx.options.include_paths))
-	cCtx.options.image_path = C.CString(goCtx.Options.ImagePath)
-	defer C.free(unsafe.Pointer(cCtx.options.image_path))
 	// call the underlying C compile function to populate the C context
 	C.sass_compile(cCtx)
 	// extract values from the C context to populate the Go context object
@@ -77,14 +79,12 @@ func CompileFile(goCtx *FileContext) {
 	defer C.free(unsafe.Pointer(cCtx.input_path))
 	cCtx.options.output_style = C.int(goCtx.Options.OutputStyle)
 	if goCtx.Options.SourceComments {
-		cCtx.options.source_comments = C.int(1)
+		cCtx.options.source_comments = true
 	} else {
-		cCtx.options.source_comments = C.int(0)
+		cCtx.options.source_comments = false
 	}
 	cCtx.options.include_paths = C.CString(strings.Join(goCtx.Options.IncludePaths, ":"))
 	defer C.free(unsafe.Pointer(cCtx.options.include_paths))
-	cCtx.options.image_path = C.CString(goCtx.Options.ImagePath)
-	defer C.free(unsafe.Pointer(cCtx.options.image_path))
 	// call the underlying C compile function to populate the C context
 	C.sass_compile_file(cCtx)
 	// extract values from the C context to populate the Go context object

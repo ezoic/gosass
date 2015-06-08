@@ -1,10 +1,14 @@
 package gosass
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"runtime"
+	"strings"
 	"testing"
+
+	"github.com/aryann/difflib"
 )
 
 func runParallel(testFunc func(chan bool), concurrency int) {
@@ -62,12 +66,16 @@ func TestConcurrent(t *testing.T) {
 		for i := 1; i <= numTests; i++ {
 			inputFile := fmt.Sprintf("test/test%d.scss", i)
 			result := compileTest(t, inputFile)
+			result = strings.Replace(result, "\r", "", -1)
 			desiredOutput, err := ioutil.ReadFile(fmt.Sprintf("test/test%d.css", i))
 			if err != nil {
 				t.Error(fmt.Sprintf("ERROR: couldn't read test/test%d.css", i))
 			}
+			desiredOutput = bytes.Replace(desiredOutput, []byte("\r"), []byte(""), -1)
 			if result != string(desiredOutput) {
-				t.Error("ERROR: incorrect output")
+				da := difflib.Diff([]string{string(result)}, []string{string(desiredOutput)})
+				d := da[0]
+				t.Errorf("ERROR: incorrect output: %s\n%s\n=", inputFile, d.String())
 			}
 		}
 		done <- true
@@ -80,24 +88,28 @@ var testSassFuncs = []struct {
 	context  Context
 	expected string
 }{
-	{name: "image-url test with scheme-less uri path",
-		context: Context{
-			Options: Options{
-				OutputStyle:    COMPRESSED_STYLE,
-				SourceComments: false,
-				IncludePaths:   []string{"//include-root"},
-				ImagePath:      "//image-root"},
-			SourceString: "bg { src: image-url('fonts/fancy.otf?whynot');}"},
-		expected: "bg{src:url(\"//image-root/fonts/fancy.otf?whynot\");}"},
-	{name: "image-url test with relative uri path",
-		context: Context{
-			Options: Options{
-				OutputStyle:    COMPRESSED_STYLE,
-				SourceComments: false,
-				IncludePaths:   []string{"//include-root"},
-				ImagePath:      "/image-root"},
-			SourceString: "bg { src: image-url('fonts/fancy.otf?whynot');}"},
-		expected: "bg{src:url(\"/image-root/fonts/fancy.otf?whynot\");}"},
+//{name: "image-url test with scheme-less uri path",
+//	context: Context{
+//		Options: Options{
+//			OutputStyle:    COMPRESSED_STYLE,
+//			SourceComments: false,
+//			IncludePaths:   []string{"//include-root"},
+//		},
+//		SourceString: "bg { src: image-url('fonts/fancy.otf?whynot');}"},
+//	expected: "bg{src:url(\"//image-root/fonts/fancy.otf?whynot\");}"},
+//{name: "image-url test with relative uri path",
+//	context: Context{
+//		Options: Options{
+//			OutputStyle:    COMPRESSED_STYLE,
+//			SourceComments: false,
+//			IncludePaths:   []string{"//include-root"},
+//		},
+//		SourceString: "bg { src: image-url('fonts/fancy.otf?whynot');}"},
+//	expected: "bg{src:url(\"/image-root/fonts/fancy.otf?whynot\");}"},
+}
+
+func TestSassVersion(t *testing.T) {
+	fmt.Println(GetLibsassVersion())
 }
 
 func TestSassFunctions(t *testing.T) {
