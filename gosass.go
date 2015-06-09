@@ -5,6 +5,7 @@ package gosass
 #cgo CFLAGS: -Ilibsass
 
 #include <stdlib.h>
+#include <sass_context.h>
 #include <sass_interface.h>
 */
 import "C"
@@ -51,46 +52,73 @@ func GetLibsassVersion() string {
 
 func Compile(goCtx *Context) {
 	// set up the underlying C context struct
-	cCtx := C.sass_new_context()
-	cCtx.source_string = C.CString(goCtx.SourceString)
-	defer C.free(unsafe.Pointer(cCtx.source_string))
-	cCtx.options.output_style = C.int(goCtx.Options.OutputStyle)
+	source_string := C.CString(goCtx.SourceString)
+	// libsass is deleting this during Block* Context::parse_string() in context.cpp
+	//defer C.free(unsafe.Pointer(source_string))
+
+	dataContext := C.sass_make_data_context(source_string)
+	defer C.sass_delete_data_context(dataContext)
+
+	options := C.sass_data_context_get_options(dataContext)
+
+	C.sass_option_set_output_style(options, uint32(goCtx.Options.OutputStyle))
 	if goCtx.Options.SourceComments {
-		cCtx.options.source_comments = true
+		C.sass_option_set_source_comments(options, true)
 	} else {
-		cCtx.options.source_comments = false
+		C.sass_option_set_source_comments(options, false)
 	}
-	cCtx.options.include_paths = C.CString(strings.Join(goCtx.Options.IncludePaths, ":"))
-	defer C.free(unsafe.Pointer(cCtx.options.include_paths))
-	// call the underlying C compile function to populate the C context
-	C.sass_compile(cCtx)
-	// extract values from the C context to populate the Go context object
-	goCtx.OutputString = C.GoString(cCtx.output_string)
-	goCtx.ErrorStatus = int(cCtx.error_status)
-	goCtx.ErrorMessage = C.GoString(cCtx.error_message)
-	// don't forget to free the C context!
-	C.sass_free_context(cCtx)
+
+	include_path := C.CString(strings.Join(goCtx.Options.IncludePaths, ":"))
+	// i think that libsass is freeing this when we destroy the context
+	defer C.free(unsafe.Pointer(include_path))
+	C.sass_option_set_include_path(options, include_path)
+
+	C.sass_data_context_set_options(dataContext, options)
+	context := C.sass_data_context_get_context(dataContext)
+	compiler := C.sass_make_data_compiler(dataContext)
+	defer C.sass_delete_compiler(compiler)
+
+	C.sass_compiler_parse(compiler)
+	C.sass_compiler_execute(compiler)
+
+	goCtx.OutputString = C.GoString(C.sass_context_get_output_string(context))
+	goCtx.ErrorStatus = int(C.sass_context_get_error_status(context))
+	goCtx.ErrorMessage = C.GoString(C.sass_context_get_error_message(context))
+
 }
 
 func CompileFile(goCtx *FileContext) {
 	// set up the underlying C context struct
-	cCtx := C.sass_new_file_context()
-	cCtx.input_path = C.CString(goCtx.InputPath)
-	defer C.free(unsafe.Pointer(cCtx.input_path))
-	cCtx.options.output_style = C.int(goCtx.Options.OutputStyle)
+	input_path := C.CString(goCtx.InputPath)
+	// libsass is deleting this during Block* Context::parse_string() in context.cpp
+	//defer C.free(unsafe.Pointer(input_path))
+
+	fileContext := C.sass_make_file_context(input_path)
+	defer C.sass_delete_file_context(fileContext)
+
+	options := C.sass_file_context_get_options(fileContext)
+
+	C.sass_option_set_output_style(options, uint32(goCtx.Options.OutputStyle))
 	if goCtx.Options.SourceComments {
-		cCtx.options.source_comments = true
+		C.sass_option_set_source_comments(options, true)
 	} else {
-		cCtx.options.source_comments = false
+		C.sass_option_set_source_comments(options, false)
 	}
-	cCtx.options.include_paths = C.CString(strings.Join(goCtx.Options.IncludePaths, ":"))
-	defer C.free(unsafe.Pointer(cCtx.options.include_paths))
-	// call the underlying C compile function to populate the C context
-	C.sass_compile_file(cCtx)
-	// extract values from the C context to populate the Go context object
-	goCtx.OutputString = C.GoString(cCtx.output_string)
-	goCtx.ErrorStatus = int(cCtx.error_status)
-	goCtx.ErrorMessage = C.GoString(cCtx.error_message)
-	// don't forget to free the C context!
-	C.sass_free_file_context(cCtx)
+
+	include_path := C.CString(strings.Join(goCtx.Options.IncludePaths, ":"))
+	defer C.free(unsafe.Pointer(include_path))
+	C.sass_option_set_include_path(options, include_path)
+
+	C.sass_file_context_set_options(fileContext, options)
+	context := C.sass_file_context_get_context(fileContext)
+	compiler := C.sass_make_file_compiler(fileContext)
+	defer C.sass_delete_compiler(compiler)
+
+	C.sass_compiler_parse(compiler)
+	C.sass_compiler_execute(compiler)
+
+	goCtx.OutputString = C.GoString(C.sass_context_get_output_string(context))
+	goCtx.ErrorStatus = int(C.sass_context_get_error_status(context))
+	goCtx.ErrorMessage = C.GoString(C.sass_context_get_error_message(context))
+
 }

@@ -84,28 +84,21 @@ var testSassFuncs = []struct {
 	context  Context
 	expected string
 }{
-//{name: "image-url test with scheme-less uri path",
-//	context: Context{
-//		Options: Options{
-//			OutputStyle:    COMPRESSED_STYLE,
-//			SourceComments: false,
-//			IncludePaths:   []string{"//include-root"},
-//		},
-//		SourceString: "bg { src: image-url('fonts/fancy.otf?whynot');}"},
-//	expected: "bg{src:url(\"//image-root/fonts/fancy.otf?whynot\");}"},
-//{name: "image-url test with relative uri path",
-//	context: Context{
-//		Options: Options{
-//			OutputStyle:    COMPRESSED_STYLE,
-//			SourceComments: false,
-//			IncludePaths:   []string{"//include-root"},
-//		},
-//		SourceString: "bg { src: image-url('fonts/fancy.otf?whynot');}"},
-//	expected: "bg{src:url(\"/image-root/fonts/fancy.otf?whynot\");}"},
+	{name: "variable with bgcolor",
+		context: Context{
+			Options: Options{
+				OutputStyle:    COMPACT_STYLE,
+				SourceComments: false,
+				IncludePaths:   make([]string, 0),
+			},
+			SourceString: `$primaryColor: #eeffcc; body { background: $primaryColor; }`,
+		},
+		expected: "body { background: #eeffcc; }",
+	},
 }
 
-func TestSassVersion(t *testing.T) {
-	fmt.Println(GetLibsassVersion())
+func TestCompileFile(t *testing.T) {
+	compileTest(t, "test/test1.scss")
 }
 
 func TestSassFunctions(t *testing.T) {
@@ -118,7 +111,7 @@ func TestSassFunctions(t *testing.T) {
 			} else {
 				t.Error("UNKNOWN ERROR")
 			}
-		} else if tobj.context.OutputString != tobj.expected {
+		} else if strings.TrimSpace(tobj.context.OutputString) != strings.TrimSpace(tobj.expected) {
 			t.Errorf("Test case %s failed.  Expected \"%s\" but received \"%s\".", tobj.name, tobj.expected, tobj.context.OutputString)
 		}
 	}
