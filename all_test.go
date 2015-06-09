@@ -7,8 +7,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-
-	"github.com/aryann/difflib"
 )
 
 func runParallel(testFunc func(chan bool), concurrency int) {
@@ -73,9 +71,7 @@ func TestConcurrent(t *testing.T) {
 			}
 			desiredOutput = bytes.Replace(desiredOutput, []byte("\r"), []byte(""), -1)
 			if result != string(desiredOutput) {
-				da := difflib.Diff([]string{string(result)}, []string{string(desiredOutput)})
-				d := da[0]
-				t.Errorf("ERROR: incorrect output: %s\n%s\n=", inputFile, d.String())
+				t.Errorf("ERROR: incorrect output")
 			}
 		}
 		done <- true
