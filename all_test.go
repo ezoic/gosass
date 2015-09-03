@@ -2,7 +2,7 @@ package gosass
 
 /*
 #cgo linux LDFLAGS: -L. -lsass -lstdc++
-#cgo windows LDFLAGS: libsass_windows.a -lstdc++ -lm
+#cgo windows LDFLAGS: ${SRCDIR}/libsass_windows.a -lstdc++ -lm
 */
 
 import (
