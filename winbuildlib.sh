@@ -13,7 +13,7 @@ export PATH=$PATH:/c/TDM-GCC-64/bin:$GITPATH
 export CC=gcc
 export LDFLAGS=-shared-libstdc++
 
-rm -f libsass.dll
+rm -f libsass.dll libsass.a
 
 git submodule init
 git submodule update
@@ -23,8 +23,7 @@ git submodule update
 pushd libsass
 git reset --hard
 mingw32-make.exe clean
-mingw32-make.exe lib/libsass.dll
-#mingw32-make.exe lib/libsass.a
+mingw32-make.exe lib/libsass.a
 popd
 
-cp libsass/lib/libsass.dll .
+cp libsass/lib/libsass.a libsass_windows.a

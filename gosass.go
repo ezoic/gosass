@@ -1,7 +1,8 @@
 package gosass
 
 /*
-#cgo LDFLAGS: -L. -lsass -lstdc++
+#cgo linux LDFLAGS: -L. -lsass -lstdc++
+#cgo windows LDFLAGS: libsass_windows.a -lstdc++ -lm
 #cgo CFLAGS: -Ilibsass
 
 #include <stdlib.h>
