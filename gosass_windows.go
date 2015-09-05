@@ -2,85 +2,130 @@ package gosass
 
 // +build windows
 
+/*
+#cgo CFLAGS: -Ilibsass
+#include "sass.h"
+*/
+import "C"
+
+import (
+	"bytes"
+	"os/exec"
+	"strings"
+)
+
+// return the stubbed Libsass version
 func GetLibsassVersion() string {
 	return "LIBSASS_WINDOWS"
 }
 
+// create the command line for compiling a file
+func generateCompileFileCommand(goCtx *FileContext) *exec.Cmd {
+
+	args := make([]string, 0)
+
+	// handle the output style
+	switch goCtx.OutputStyle {
+	case C.SASS_STYLE_NESTED:
+		args = append(args, []string{"--style", "nested"}...)
+	case C.SASS_STYLE_EXPANDED:
+		args = append(args, []string{"--style", "expanded"}...)
+	case C.SASS_STYLE_COMPACT:
+		args = append(args, []string{"--style", "compact"}...)
+	case C.SASS_STYLE_COMPRESSED:
+		args = append(args, []string{"--style", "compressed"}...)
+	}
+
+	// include line comments or not
+	if goCtx.Options.SourceComments {
+		args = append(args, " --line-comments")
+	}
+
+	// set the import path
+	if len(goCtx.Options.IncludePaths) > 0 {
+		args = append(args, []string{"-I", strings.Join(goCtx.Options.IncludePaths, ":")}...)
+	}
+
+	args = append(args, goCtx.InputPath)
+
+	cmd := exec.Command("sassc.exe", args...)
+
+	return cmd
+}
+
+// create the command line for compiling a string
+func generateCompileStringCommand(goCtx *Context) *exec.Cmd {
+
+	args := make([]string, 0)
+
+	// tell command to read from stdin
+	args = append(args, "--stdin")
+
+	// handle the output style
+	switch goCtx.OutputStyle {
+	case C.SASS_STYLE_NESTED:
+		args = append(args, []string{"--style", "nested"}...)
+	case C.SASS_STYLE_EXPANDED:
+		args = append(args, []string{"--style", "expanded"}...)
+	case C.SASS_STYLE_COMPACT:
+		args = append(args, []string{"--style", "compact"}...)
+	case C.SASS_STYLE_COMPRESSED:
+		args = append(args, []string{"--style", "compressed"}...)
+	}
+
+	// include line comments or not
+	if goCtx.Options.SourceComments {
+		args = append(args, " --line-comments")
+	}
+
+	// set the import path
+	if len(goCtx.Options.IncludePaths) > 0 {
+		args = append(args, []string{"-I", strings.Join(goCtx.Options.IncludePaths, ":")}...)
+	}
+
+	cmd := exec.Command("sassc.exe", args...)
+
+	return cmd
+}
+
+// run the sassc command and read the results into an object
+func runCommand(cmd *exec.Cmd) (errorStatus int, errorMessage, outputString string) {
+	cmdErr := &bytes.Buffer{}
+	cmdOut := &bytes.Buffer{}
+
+	cmd.Stderr = cmdErr
+	cmd.Stdout = cmdOut
+
+	err := cmd.Run()
+	if err != nil {
+		errorStatus = 1
+		errorMessage = cmdErr.String()
+	} else {
+		errorStatus = 0
+		errorMessage = ""
+	}
+
+	outputString = cmdOut.String()
+
+	return errorStatus, errorMessage, outputString
+}
+
+// Compile sass string
 func Compile(goCtx *Context) {
 
-	/*
-		// set up the underlying C context struct
-		source_string := C.CString(goCtx.SourceString)
-		// libsass is deleting this during Block* Context::parse_string() in context.cpp
-		//defer C.free(unsafe.Pointer(source_string))
+	cmd := generateCompileStringCommand(goCtx)
+	cmd.Stdin = strings.NewReader(goCtx.SourceString)
 
-		dataContext := C.sass_make_data_context(source_string)
-		defer C.sass_delete_data_context(dataContext)
-
-		options := C.sass_data_context_get_options(dataContext)
-
-		C.sass_option_set_output_style(options, uint32(goCtx.Options.OutputStyle))
-		if goCtx.Options.SourceComments {
-			C.sass_option_set_source_comments(options, true)
-		} else {
-			C.sass_option_set_source_comments(options, false)
-		}
-
-		include_path := C.CString(strings.Join(goCtx.Options.IncludePaths, ":"))
-		// i think that libsass is freeing this when we destroy the context
-		defer C.free(unsafe.Pointer(include_path))
-		C.sass_option_set_include_path(options, include_path)
-
-		C.sass_data_context_set_options(dataContext, options)
-		context := C.sass_data_context_get_context(dataContext)
-		compiler := C.sass_make_data_compiler(dataContext)
-		defer C.sass_delete_compiler(compiler)
-
-		C.sass_compiler_parse(compiler)
-		C.sass_compiler_execute(compiler)
-
-		goCtx.OutputString = C.GoString(C.sass_context_get_output_string(context))
-		goCtx.ErrorStatus = int(C.sass_context_get_error_status(context))
-		goCtx.ErrorMessage = C.GoString(C.sass_context_get_error_message(context))
-	*/
+	goCtx.ErrorStatus, goCtx.ErrorMessage, goCtx.OutputString = runCommand(cmd)
 
 }
 
+// Compile sass from file
 func CompileFile(goCtx *FileContext) {
-	/*
 
-		// set up the underlying C context struct
-		input_path := C.CString(goCtx.InputPath)
-		// libsass is deleting this during Block* Context::parse_string() in context.cpp
-		//defer C.free(unsafe.Pointer(input_path))
+	cmd := generateCompileFileCommand(goCtx)
+	cmd.Stdin = nil
 
-		fileContext := C.sass_make_file_context(input_path)
-		defer C.sass_delete_file_context(fileContext)
-
-		options := C.sass_file_context_get_options(fileContext)
-
-		C.sass_option_set_output_style(options, uint32(goCtx.Options.OutputStyle))
-		if goCtx.Options.SourceComments {
-			C.sass_option_set_source_comments(options, true)
-		} else {
-			C.sass_option_set_source_comments(options, false)
-		}
-
-		include_path := C.CString(strings.Join(goCtx.Options.IncludePaths, ":"))
-		defer C.free(unsafe.Pointer(include_path))
-		C.sass_option_set_include_path(options, include_path)
-
-		C.sass_file_context_set_options(fileContext, options)
-		context := C.sass_file_context_get_context(fileContext)
-		compiler := C.sass_make_file_compiler(fileContext)
-		defer C.sass_delete_compiler(compiler)
-
-		C.sass_compiler_parse(compiler)
-		C.sass_compiler_execute(compiler)
-
-		goCtx.OutputString = C.GoString(C.sass_context_get_output_string(context))
-		goCtx.ErrorStatus = int(C.sass_context_get_error_status(context))
-		goCtx.ErrorMessage = C.GoString(C.sass_context_get_error_message(context))
-	*/
+	goCtx.ErrorStatus, goCtx.ErrorMessage, goCtx.OutputString = runCommand(cmd)
 
 }
