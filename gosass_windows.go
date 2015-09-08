@@ -2,6 +2,11 @@ package gosass
 
 // +build windows
 
+/*
+#cgo windows LDFLAGS: ${SRCDIR}/libsass_windows.a -lstdc++ -lm
+*/
+import "C"
+
 func GetLibsassVersion() string {
 	return "LIBSASS_WINDOWS"
 }

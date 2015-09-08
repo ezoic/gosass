@@ -3,8 +3,7 @@ package gosass
 // +build linux
 
 /*
-#cgo linux LDFLAGS: -L. -lsass -lstdc++
-#cgo windows LDFLAGS: ${SRCDIR}/libsass_windows.a -lstdc++ -lm
+#cgo linux LDFLAGS: ${SRCDIR}/libsass_linux.a -lstdc++ -lm -ldl
 #cgo CFLAGS: -Ilibsass
 
 #include <stdlib.h>
