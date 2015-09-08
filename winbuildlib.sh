@@ -22,6 +22,7 @@ git submodule update
 
 pushd libsass
 git clean -fxd
+git reset --hard
 mingw32-make.exe clean
 mingw32-make.exe lib/libsass.a
 popd

@@ -10,6 +10,7 @@ git submodule update
 
 pushd libsass
 git clean -fxd
+git reset --hard
 BUILD=static make -j4
 popd
 
