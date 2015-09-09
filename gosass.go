@@ -1,14 +1,5 @@
 package gosass
 
-/*
-#cgo CFLAGS: -Ilibsass
-
-#include <stdlib.h>
-#include <sass_context.h>
-#include <sass_interface.h>
-*/
-import "C"
-
 type Options struct {
 	OutputStyle    int
 	SourceComments bool

@@ -2,13 +2,6 @@ package gosass
 
 // +build windows
 
-/*
-#cgo windows LDFLAGS: ${SRCDIR}/libsass_windows.a -lstdc++ -lm
-#cgo CFLAGS: -Ilibsass
-#include "sass.h"
-*/
-import "C"
-
 import (
 	"bytes"
 	"os/exec"
@@ -27,13 +20,13 @@ func generateCompileFileCommand(goCtx *FileContext) *exec.Cmd {
 
 	// handle the output style
 	switch goCtx.OutputStyle {
-	case C.SASS_STYLE_NESTED:
+	case NESTED_STYLE:
 		args = append(args, []string{"--style", "nested"}...)
-	case C.SASS_STYLE_EXPANDED:
+	case EXPANDED_STYLE:
 		args = append(args, []string{"--style", "expanded"}...)
-	case C.SASS_STYLE_COMPACT:
+	case COMPACT_STYLE:
 		args = append(args, []string{"--style", "compact"}...)
-	case C.SASS_STYLE_COMPRESSED:
+	case COMPRESSED_STYLE:
 		args = append(args, []string{"--style", "compressed"}...)
 	}
 
@@ -64,13 +57,13 @@ func generateCompileStringCommand(goCtx *Context) *exec.Cmd {
 
 	// handle the output style
 	switch goCtx.OutputStyle {
-	case C.SASS_STYLE_NESTED:
+	case NESTED_STYLE:
 		args = append(args, []string{"--style", "nested"}...)
-	case C.SASS_STYLE_EXPANDED:
+	case EXPANDED_STYLE:
 		args = append(args, []string{"--style", "expanded"}...)
-	case C.SASS_STYLE_COMPACT:
+	case COMPACT_STYLE:
 		args = append(args, []string{"--style", "compact"}...)
-	case C.SASS_STYLE_COMPRESSED:
+	case COMPRESSED_STYLE:
 		args = append(args, []string{"--style", "compressed"}...)
 	}
 
